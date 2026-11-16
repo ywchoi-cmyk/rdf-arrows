@@ -18,8 +18,8 @@ const TTL_TOKEN = new RegExp([
   String.raw`(?<other>.)`,
 ].join('|'), 'guy');
 
-/** Turtle 문자열 → 줄 단위 HTML. 주어 자리에서 캔버스 노드와 같은 이름이면 그 노드 색 칩으로 감싼다 */
-function highlightTurtle(ttl, chipFor = () => null){
+/** Turtle 문자열 → 줄 단위 HTML. 주어 자리에서 캔버스 노드와 같은 이름이면 그 노드의 테두리 색으로 글자를 칠한다 */
+function highlightTurtle(ttl, colorFor = () => null){
   const toks = [];
   let role = 's', inDir = false, afterDt = false;
   const stack = [];
@@ -45,7 +45,7 @@ function highlightTurtle(ttl, chipFor = () => null){
       else if (kind === 'kw'){ cls = 't-num'; }
       else {
         cls += ' t-' + role;
-        if (role === 's'){ const c = chipFor(text); if (c){ cls += ' t-chip'; style = `background:${c.fill};border-color:${c.stroke}`; } role = 'p'; }
+        if (role === 's'){ const c = colorFor(text); if (c){ cls += ' t-node'; style = `color:${c.stroke}`; } role = 'p'; }
         else if (role === 'p') role = 'o';
       }
     }

@@ -101,7 +101,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid #cfd4db;border-botto
 .t-num{color:#d9480f}
 .t-bnode{color:#868e96}
 .t-punc{color:#adb5bd}
-.t-chip{padding:1px 7px;border:1px solid;border-radius:999px;color:#1d2330}
+.t-node{font-weight:700}
 #ttlStatus{padding:8px 14px;border-top:1px solid var(--line);font-size:12px}
 #ttlStatus .ok{color:#188038}
 #ttlStatus .bad{color:var(--danger)}

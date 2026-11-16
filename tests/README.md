@@ -18,4 +18,4 @@ CHROME=/path/to/chrome tests/run_all.sh   # 크롬 경로 지정
 | test_naming.py | 이름 정하는 방식 (IRI 먼저 / 라벨에서 IRI) |
 | test_vocab.py | 외부 용어 불러오기, RDF/XML 모듈, 파일 업로드, 취소·오류, 이어서 만들기 |
 | test_samples.py | 예시 메뉴: 작은 조직 예시, W3C ORG (받기 성공·실패) |
-| test_highlight.py | TTL 미리보기 색: 자리별 색(주어·관계·값·문자열 등), 원문과 글자 일치, 노드 색 칩, 복사 |
+| test_highlight.py | TTL 미리보기 색: 자리별 색(주어·관계·값·문자열 등), 원문과 글자 일치, 노드 색 글자, 복사 |

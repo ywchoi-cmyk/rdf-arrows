@@ -46,9 +46,11 @@ try:
         page.click("#bView"); page.wait_for_timeout(200)
         ttl = page.evaluate("window.__rdfArrows.toTurtle()")
         assert page.evaluate(LINES) == ttl.rstrip("\n")
-        chips = page.eval_on_selector_all(".t-chip", "els => els.map(e => [e.textContent, getComputedStyle(e).backgroundColor])")
+        chips = page.eval_on_selector_all(".t-node", "els => els.map(e => [e.textContent, getComputedStyle(e).color, getComputedStyle(e).borderTopWidth, getComputedStyle(e).backgroundColor])")
         nodes = page.evaluate("window.__rdfArrows.state.nodes.length")
         assert len(chips) == nodes, (chips, nodes)
+        assert all(c[2] == '0px' and c[3] == 'rgba(0, 0, 0, 0)' for c in chips), chips   # 테두리·바탕 없이 글자색만
+        assert len({c[1] for c in chips}) > 1, chips
         assert page.eval_on_selector_all(".t-sec", "els => els.length") >= 4
         assert page.eval_on_selector_all(".t-meta", "els => els.length") >= 1
         assert "통과" in page.inner_text("#ttlStatus")
