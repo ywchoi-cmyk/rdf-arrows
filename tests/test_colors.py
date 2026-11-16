@@ -70,7 +70,7 @@ try:
         assert dict(st)["A"] is None and dict(st)["B"] == "#fce8e6"
         assert fill(0) == expected("http://e.org/o#A")[1]
         # 예시: 색 지정 없이 모두 자동, 개체는 타입 색
-        page.click("#bSample"); page.wait_for_timeout(300)
+        page.click("#bSample"); page.click("[data-sample=small]"); page.wait_for_timeout(300)
         nodes = page.evaluate("window.__rdfArrows.state.nodes.map(n => ({ name: n.name, kind: n.kind, color: n.color }))")
         assert all(n["color"] is None for n in nodes)
         page.mouse.click(svg["x"] + 900, svg["y"] + 760)

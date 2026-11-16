@@ -28,6 +28,7 @@
 | 확대·축소 | Ctrl/⌘ + 스크롤, 트랙패드 핀치, 왼쪽 아래 버튼 |
 | 삭제 / 되돌리기 | Delete·Backspace / Ctrl/⌘ + Z |
 | 불러오기 | "TTL 불러오기" 또는 .ttl 파일을 캔버스에 끌어다 놓기 |
+| 예시 | "예시 ▾"에서 작은 조직 예시 또는 W3C 조직 온톨로지(ORG, w3.org에서 받음) |
 
 ## TTL로 나가는 내용
 
@@ -79,11 +80,31 @@ OOPS!는 외부 서버라서 요청을 다음과 같이 제한합니다. 기록�
 - 속성 계층 (`subPropertyOf`)
 - 완전한 OWL DL 추론 (브라우저 안 추론은 OWL RL 규칙 일부만 다룸)
 
+## 파일 구성
+
+빌드 도구 없이 정적 파일만으로 돌아갑니다. `index.html`이 화면 구조를 담고, 아래 스크립트를 순서대로 불러옵니다.
+
+| 파일 | 맡은 일 |
+|---|---|
+| `css/app.css` | 스타일 |
+| `js/core.js` | 상수, 상태, 실행 취소·자동 저장, 이름과 IRI 규칙, 노드·관계 만들기 |
+| `js/canvas.js` | 캔버스 그리기, 자동 배치, 화면 이동·확대, 마우스 조작 |
+| `js/vocab.js` | 외부 온톨로지 용어 불러오기 (브라우저 저장, 검색) |
+| `js/combo.js` | 이름 칸 드롭다운 |
+| `js/panels.js` | 오른쪽 패널 (클래스·개체·관계 편집) |
+| `js/ttl-export.js` / `js/ttl-import.js` | Turtle 내보내기 / 불러오기 |
+| `js/io.js` | 파일 열기·내려받기, TTL 미리보기 |
+| `js/check.js` | 검사 (추론, 데이터 검사, OOPS!) |
+| `js/card.js` | 온톨로지 카드, 도움말 |
+| `js/main.js` | 툴바, 예시, 시작 |
+| `lib/` | Turtle 파서(N3.js), RDF/XML 파서(필요할 때만 불러옴) |
+| `tests/` | 브라우저 테스트 (`tests/run_all.sh`, 자세한 내용은 `tests/README.md`) |
+
 ## 로컬 실행
 
 ```bash
 python3 -m http.server 8000
-# http://localhost:8000 접속
+# http://localhost:8000 접속 (파일을 더블클릭해서 열면 스크립트가 안 불러와질 수 있음)
 ```
 
 ## 라이선스

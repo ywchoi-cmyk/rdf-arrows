@@ -12,7 +12,7 @@ try:
         page.on("pageerror", lambda e: errors.append(str(e)))
         page.on("console", lambda m: errors.append(m.text) if m.type == "error" else None)
         page.goto("http://127.0.0.1:8774/index.html"); page.wait_for_timeout(300)
-        page.click("#bSample"); page.wait_for_timeout(300)
+        page.click("#bSample"); page.click("[data-sample=small]"); page.wait_for_timeout(300)
         page.evaluate("window.__rdfArrows.state.meta.naming = 'label'")
         st = lambda: page.evaluate("window.__rdfArrows.state")
         def edge_where(js): return page.evaluate(f"(() => {{ const S = window.__rdfArrows.state; const N = id => S.nodes.find(n => n.id === id); return S.edges.find(e => {js}).id; }})()")

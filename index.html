@@ -12,7 +12,11 @@
   <div class="brand">RDF Arrows<small>온톨로지 모델러</small></div>
   <button class="tb" id="bNew" title="새 캔버스 (실행 취소로 되돌릴 수 있음)">새로 만들기</button>
   <button class="tb" id="bOpen" title="Turtle 파일 불러오기 (캔버스에 끌어다 놓아도 됨)">TTL 불러오기</button>
-  <button class="tb" id="bSample">예시</button>
+  <div class="samplewrap"><button class="tb" id="bSample" aria-haspopup="true" aria-expanded="false">예시 ▾</button>
+    <div id="sampleMenu" class="smenu" role="menu" hidden>
+      <button role="menuitem" data-sample="small"><b>조직 예시</b><span class="hint">클래스 4 · 개체 3 · 작게 살펴보기</span></button>
+      <button role="menuitem" data-sample="org"><b>W3C 조직 온톨로지 (ORG)</b><span class="hint">w3.org에서 받기 · 클래스 14 · 관계 32 · 외부 클래스 포함</span></button>
+    </div></div>
   <div class="sep"></div>
   <div class="modeseg" title="빈 곳을 더블클릭하면 만들어질 것 (Shift+더블클릭은 반대)">추가
     <div class="seg"><button id="mClass" class="on">클래스</button><button id="mIndiv">개체</button></div>

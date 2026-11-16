@@ -39,7 +39,21 @@ ex:mission1 a owl:NamedIndividual , ex:Mission ; rdfs:label "경계 임무"@ko ;
 # ${LAYOUT_TAG} {"v":2,"nodes":{"http://example.org/org#Person":[-260,-60],"http://example.org/org#Organization":[120,-200],"http://example.org/org#Unit":[120,20],"http://example.org/org#Mission":[460,20],"http://example.org/org#kim":[-260,230],"http://example.org/org#unit1":[120,230],"http://example.org/org#mission1":[460,230]}}
 `;
 const loadSample = () => loadText(SAMPLE, '예시');
-$('#bSample').onclick = loadSample; $('#bSample2').onclick = loadSample;
+const ORG_URL = 'https://www.w3.org/ns/org.ttl';
+async function loadOrgSample(){
+  toast('W3C ORG 받는 중…');
+  try {
+    const r = await fetch(ORG_URL);
+    if (!r.ok) throw new Error('서버 응답 ' + r.status);
+    loadText(await r.text(), 'W3C ORG');
+  } catch (e){ toast(`받지 못했습니다. ${ORG_URL} 을 내려받아 캔버스에 끌어다 놓으세요.`); }
+}
+const sampleMenu = $('#sampleMenu');
+const setSampleMenu = open => { sampleMenu.hidden = !open; $('#bSample').setAttribute('aria-expanded', String(open)); };
+$('#bSample').onclick = ev => { ev.stopPropagation(); setSampleMenu(sampleMenu.hidden); };
+sampleMenu.querySelectorAll('[data-sample]').forEach(b => b.onclick = () => { setSampleMenu(false); b.dataset.sample === 'org' ? loadOrgSample() : loadSample(); });
+document.addEventListener('click', ev => { if (!sampleMenu.hidden && !ev.target.closest('.samplewrap')) setSampleMenu(false); });
+$('#bSample2').onclick = loadSample;
 
 /* ---------- 시작 ---------- */
 let restored = false;
@@ -50,3 +64,4 @@ try {
 renderAll(); updateHistoryButtons();
 if (!restored) requestAnimationFrame(fit);
 window.__rdfArrows = { get state(){ return state; }, get ui(){ return ui; }, PALETTE, vocab, loadVocab, colorOf: id => colorOf(nodeById(id)), toTurtle, importTurtle, toRdfXml, OOPS, runOops, runReasoner, summarizeInference, dataChecks, get inferOverlay(){ return inferOverlay; } };
+window.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !sampleMenu.hidden) setSampleMenu(false); });

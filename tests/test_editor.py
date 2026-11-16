@@ -172,7 +172,7 @@ try:
         page.screenshot(path=os.path.join(OUT, "built.png"))
 
         # 8) 예시 → 왕복 동형성
-        page.click("#bSample")
+        page.click("#bSample"); page.click("[data-sample=small]")
         page.wait_for_timeout(300)
         ttl2 = page.evaluate("window.__rdfArrows.toTurtle()")
         page.evaluate("""(t) => { const s = window.__rdfArrows.importTurtle(t); }""", ttl2)

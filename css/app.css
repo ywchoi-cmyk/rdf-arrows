@@ -210,3 +210,9 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid #cfd4db;border-botto
 .edge.inferred .ltext{fill:#7b61c9;font-style:italic;font-size:11px}
 .edge.inferred .pill{stroke:#c9bdf0}
 .edge.inferred{pointer-events:none}
+.samplewrap{position:relative}
+.smenu{position:absolute;top:calc(100% + 4px);left:0;z-index:30;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(20,24,32,.14);padding:4px;width:280px}
+.smenu[hidden]{display:none}
+.smenu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:6px;font:inherit;cursor:pointer}
+.smenu button:hover{background:#eef3fe}
+.smenu .hint{display:block;margin-top:2px}
