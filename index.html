@@ -2319,7 +2319,7 @@ try {
 } catch (e) {}
 renderAll(); updateHistoryButtons();
 if (!restored) requestAnimationFrame(fit);
-window.__rdfArrows = { get state(){ return state; }, get ui(){ return ui; }, PALETTE, colorOf: id => colorOf(nodeById(id)), toTurtle, importTurtle, toRdfXml, OOPS, runOops, runReasoner, summarizeInference, dataChecks, get inferOverlay(){ return inferOverlay; } };
+window.__rdfArrows = { get state(){ return state; }, get ui(){ return ui; }, PALETTE, vocab, loadVocab, colorOf: id => colorOf(nodeById(id)), toTurtle, importTurtle, toRdfXml, OOPS, runOops, runReasoner, summarizeInference, dataChecks, get inferOverlay(){ return inferOverlay; } };
 })();
 </script>
 </body>
