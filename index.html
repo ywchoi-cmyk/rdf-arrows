@@ -1321,11 +1321,14 @@ function importTurtle(text){
   const lang = (() => {
     const langs = new Map();
     quads.forEach(q => { if (q.object.termType === 'Literal' && q.object.language) langs.set(q.object.language, (langs.get(q.object.language) || 0) + 1); });
+    // 여러 언어가 섞여 있으면 한국어, 다음은 영어를 먼저 씀
+    if (langs.has('ko')) return 'ko';
+    if (langs.has('en')) return 'en';
     return [...langs.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
   })();
   const pickLit = (subj, pred) => {
     const ls = objs(subj, pred).filter(o => o.termType === 'Literal');
-    return (ls.find(l => l.language === lang) || ls.find(l => !l.language) || ls[0] || { value: '' }).value;
+    return (ls.find(l => l.language === lang) || ls.find(l => l.language === 'ko') || ls.find(l => l.language === 'en') || ls.find(l => !l.language) || ls[0] || { value: '' }).value;
   };
   const extraPairs = Object.entries(prefixes).filter(([k, v]) => !(k in STD && STD[k] === v) && !(k === prefix && v === base) && v !== base);
   const meta = {
