@@ -30,9 +30,12 @@ wrap.addEventListener('drop', ev => {
 });
 
 /* ---------- 모달 ---------- */
+let lastTtl = '';
 function openModal(){
   const ttl = toTurtle();
-  $('#ttlOut').value = ttl;
+  lastTtl = ttl;
+  $('#ttlOut').innerHTML = highlightTurtle(ttl, canvasChips());
+  $('#ttlOut').scrollTop = 0;
   const st = $('#ttlStatus');
   let parsed = null, err = null;
   try { parsed = new N3.Parser().parse(ttl); } catch (e){ err = e; }
@@ -46,8 +49,8 @@ $('#bView').onclick = openModal;
 $('#mClose').onclick = closeModal;
 $('#modal').addEventListener('click', ev => { if (ev.target.id === 'modal') closeModal(); });
 $('#mCopy').onclick = async () => {
-  try { await navigator.clipboard.writeText($('#ttlOut').value); toast('복사했습니다'); }
-  catch (e){ $('#ttlOut').select(); toast('전체 선택했습니다. Ctrl/⌘+C로 복사하세요'); }
+  try { await navigator.clipboard.writeText(lastTtl); toast('복사했습니다'); }
+  catch (e){ getSelection().selectAllChildren($('#ttlOut')); toast('전체 선택했습니다. Ctrl/⌘+C로 복사하세요'); }
 };
 $('#mDownload').onclick = download;
 $('#bDownload').onclick = download;

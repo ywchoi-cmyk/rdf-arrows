@@ -94,6 +94,7 @@ OOPS!는 외부 서버라서 요청을 다음과 같이 제한합니다. 기록�
 | `js/panels.js` | 오른쪽 패널 (클래스·개체·관계 편집) |
 | `js/ttl-export.js` / `js/ttl-import.js` | Turtle 내보내기 / 불러오기 |
 | `js/io.js` | 파일 열기·내려받기, TTL 미리보기 |
+| `js/ttl-highlight.js` | TTL 미리보기 색 입히기 (주어는 캔버스 노드 색 칩) |
 | `js/check.js` | 검사 (추론, 데이터 검사, OOPS!) |
 | `js/card.js` | 온톨로지 카드, 도움말 |
 | `js/main.js` | 툴바, 예시, 시작 |
