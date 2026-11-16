@@ -137,13 +137,23 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid #cfd4db;border-botto
 .combo input{width:100%;padding-right:28px !important}
 .combo-btn{position:absolute;right:2px;top:50%;transform:translateY(-50%);border:0;background:transparent;width:26px;height:26px;color:var(--muted);cursor:pointer;border-radius:5px}
 .combo-btn:hover{background:#f2f4f7;color:var(--text)}
-.combo-menu{position:absolute;left:0;min-width:100%;width:max-content;max-width:300px;top:calc(100% + 3px);background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(20,24,32,.14);z-index:30;max-height:260px;overflow:auto;padding:4px}
+.combo-menu{position:absolute;left:0;min-width:100%;width:max-content;max-width:310px;top:calc(100% + 3px);background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(20,24,32,.14);z-index:30;max-height:260px;overflow:auto;padding:4px}
 .combo-menu[hidden]{display:none}
 .combo-item{display:block;width:100%;text-align:left;border:0;background:transparent;padding:6px 8px;border-radius:6px;font:inherit;font-size:13px;cursor:pointer;line-height:1.45}
 .combo-item.act,.combo-item:hover{background:#eef3fe}
 .combo-item .mono{font-size:11.5px;color:var(--muted)}
 .combo-item .hint{display:block;margin:0;font-size:11.5px}
 .combo-empty{padding:6px 8px;color:var(--muted);font-size:12px}
+.combo-sec{font-size:11px;color:var(--muted);padding:8px 8px 3px;font-weight:600}
+.combo-src{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:6px}
+.combo-src .cs-main{flex:1;min-width:0;font-size:12.5px;line-height:1.45}
+.combo-src .hint{display:block;margin:2px 0 0;font-size:11.5px}
+.combo-src .bar{display:block;height:4px;background:#eef0f3;border-radius:2px;margin-top:5px;overflow:hidden}
+.combo-src .bar i{display:block;height:100%;background:var(--accent);transition:width .15s}
+.cs-act{display:flex;gap:4px;flex:none}
+.cs-act button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:2px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
+.cs-act button:hover{border-color:var(--accent);color:#1f4fb8}
+.mkrow{display:flex;gap:6px;flex-wrap:wrap}
 /* 온톨로지 카드 */
 .ocard{position:absolute;left:12px;top:12px;z-index:5;font-size:14px}
 .ocard.card,.ocard.open{width:400px;max-width:calc(100% - 24px);background:#fff;border:1px solid #d9dde3;border-radius:12px;box-shadow:0 6px 24px rgba(20,24,32,.10);display:flex;flex-direction:column;max-height:calc(100% - 24px);overflow:hidden}
@@ -505,11 +515,11 @@ const attrText = (n, a) => isIndiv(n)
   ? `${a.name || '?'} = ${a.value === '' || a.value === undefined ? '…' : a.value}`
   : `${a.name || '?'} : ${shortType(a.type)}`;
 function nodeSize(n){
-  const title = n.label || n.name || '(이름 없음)';
+  const title = nodeTitle(n);
   let w = textW(title, `700 13px ${FONT}`) + 32;
   let sub = '';
-  if (isIndiv(n)){ const ts = typesOf(n).map(c => c.label || c.name); if (ts.length) sub = ': ' + ts.join(', '); }
-  else if (n.label && n.name && n.label !== n.name) sub = n.name;
+  if (isIndiv(n)){ const ts = typesOf(n).map(nodeTitle); if (ts.length) sub = ': ' + ts.join(', '); }
+  else if (n.name && nodeTitle(n) !== n.name) sub = n.name;
   if (sub) w = Math.max(w, textW(sub, `10.5px ${FONT}`) + 28);
   n.attrs.forEach(a => { w = Math.max(w, textW(attrText(n, a), `12px ${FONT}`) + 26); });
   w = Math.max(110, Math.ceil(w));
@@ -572,7 +582,7 @@ function drawNode(n, s, dup){
   g.append(el('rect', { class: 'halo', 'data-halo': n.id, x: -10, y: -10, width: s.w + 20, height: s.h + 20, rx: rx + 8 }));
   const col = colorOf(n);
   g.append(el('rect', { class: 'body', x: 0, y: 0, width: s.w, height: s.h, rx, fill: col.fill, stroke: col.stroke }));
-  g.append(el('text', { class: 'title', x: s.w / 2, y: 23, 'text-anchor': 'middle' }, n.label || n.name || '(이름 없음)'));
+  g.append(el('text', { class: 'title', x: s.w / 2, y: 23, 'text-anchor': 'middle' }, nodeTitle(n)));
   if (s.sub) g.append(el('text', { class: 'sub', x: s.w / 2, y: 37, 'text-anchor': 'middle' }, s.sub));
   if (n.attrs.length){
     g.append(el('line', { class: 'divider', x1: 0, x2: s.w, y1: s.head, y2: s.head }));
@@ -611,7 +621,7 @@ function drawEdge(e, i, m, sizes){
   const g = el('g', { class: 'edge' + (sel ? ' selected' : '') + (sub ? ' sub' : '') + (typ ? ' type' : '') + (bad ? ' bad' : ''), 'data-edge': e.id });
   g.append(el('path', { class: 'hit', d }));
   g.append(el('path', { class: 'line', d, 'marker-end': `url(#${sub ? 'tri' : 'arrow'}${sel ? '-sel' : ''})` }));
-  const text = sub ? 'subClassOf' : typ ? 'rdf:type' : (e.label || e.name || '');
+  const text = sub ? 'subClassOf' : typ ? 'rdf:type' : edgeTitle(e);
   if (text){
     const tw = textW(text, (sub || typ) ? `italic 11px ${FONT}` : `12px ${FONT}`) + 14;
     g.append(el('rect', { class: 'pill', x: lx - tw / 2, y: ly - 10, width: tw, height: 20, rx: 10 }));
@@ -652,7 +662,7 @@ function comboHTML(inputAttrs, kind){
 }
 const autoChip = (on, what) => `<button type="button" class="ochip${on ? ' on' : ''}" id="nmAuto" title="${on ? '이름을 직접 고치면 고정됩니다' : '누르면 라벨을 따라 이름이 바뀝니다'}">${on ? `${what} 따라감` : '직접 지정 · 따라가게'}</button>`;
 function setAutoChip(on, what){ const c = $('#nmAuto'); if (!c) return; c.classList.toggle('on', on); c.textContent = on ? `${what} 따라감` : '직접 지정 · 따라가게'; c.title = on ? '이름을 직접 고치면 고정됩니다' : '누르면 라벨을 따라 이름이 바뀝니다'; }
-const nlabel = n => n ? (n.label || n.name) : '?';
+const nlabel = n => n ? nodeTitle(n) : '?';
 /** 객체 속성 후보: 이름별로 묶고 쓰이는 곳(출발 → 도착)을 함께 보여 줌 */
 function opOptions(edge){
   const map = new Map();
@@ -680,27 +690,213 @@ function dpOptions(node, skip){
   return [...map.values()].map(it => ({ value: it.value, title: it.value, sub: [...it.types].join(', '), hint: it.classes.length ? it.classes.join(', ') + '에 정의' : '개체에서만 쓰임', badge: [...it.ids].some(id => tc.has(id)) ? '추천' : '' }))
     .sort((x, y) => (y.badge ? 1 : 0) - (x.badge ? 1 : 0));
 }
+/* ---------- 외부 용어: 필요할 때 불러와서 드롭다운에서 고르기 ---------- */
+/** 브라우저에서 바로 받을 수 있는 곳만 url을 둠. 막힌 곳은 링크를 안내하고 파일로 올리게 함 */
+const SOURCES = {
+  'http://purl.obolibrary.org/obo/': { url: 'https://raw.githubusercontent.com/BFO-ontology/BFO-2020/master/21838-2/owl/bfo-core.ttl', size: '107 KB', format: 'Turtle' },
+  'https://schema.org/': { url: 'https://schema.org/version/latest/schemaorg-current-https.ttl', size: '1.0 MB', format: 'Turtle' },
+  'http://www.w3.org/2004/02/skos/core#': { url: 'https://www.w3.org/2009/08/skos-reference/skos.rdf', size: '28 KB', format: 'RDF/XML' },
+  'http://www.w3.org/ns/prov#': { url: 'https://www.w3.org/ns/prov-o.ttl', size: '67 KB', format: 'Turtle' },
+  'http://purl.org/dc/terms/': { url: 'https://www.dublincore.org/specifications/dublin-core/dcmi-terms/dublin_core_terms.ttl', size: '47 KB', format: 'Turtle' },
+  'http://www.w3.org/2006/time#': { url: 'https://www.w3.org/2006/time.ttl', size: '98 KB', format: 'Turtle' },
+  'http://xmlns.com/foaf/0.1/': { manual: 'http://xmlns.com/foaf/spec/', note: 'FOAF 사이트가 브라우저에서 바로 받는 것을 막습니다. 링크에서 RDF 파일(index.rdf)을 받아 올려 주세요.' },
+  'http://www.opengis.net/ont/geosparql#': { manual: 'https://github.com/opengeospatial/ogc-geosparql', note: '브라우저에서 바로 받을 수 있는 공식 파일 주소가 없습니다. 링크에서 geo.ttl을 받아 올려 주세요.' }
+};
+const KIND_OF = { [STD.owl + 'Class']: 'class', [STD.rdfs + 'Class']: 'class', [STD.owl + 'ObjectProperty']: 'op', [STD.owl + 'DatatypeProperty']: 'dp', [STD.rdf + 'Property']: 'prop', [STD.owl + 'AnnotationProperty']: 'ann' };
+const KIND_KO = { class: '클래스', op: '객체 속성', dp: '데이터 속성', prop: '속성', ann: '주석 속성' };
+const kindOk = (k, want) => want === 'class' ? k === 'class' : want === 'op' ? (k === 'op' || k === 'prop') : want === 'dp' ? (k === 'dp' || k === 'prop' || k === 'ann') : false;
+const vocab = {};              // 네임스페이스 → { status, terms, loaded, total, phase, error, ctl, from }
+let activeCombo = null;        // 열려 있는 드롭다운 (진행 상황 갱신용)
+const refreshCombo = () => { if (activeCombo && !activeCombo.menu.hidden) activeCombo.reopen(); };
+
+/* 불러온 용어는 이 브라우저(IndexedDB)에 저장 */
+function idb(){ return new Promise((res, rej) => { try { const r = indexedDB.open('rdf-arrows-vocab', 1); r.onupgradeneeded = () => r.result.createObjectStore('v'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e){ rej(e); } }); }
+async function idbPut(key, val){ try { const db = await idb(); await new Promise((res, rej) => { const tx = db.transaction('v', 'readwrite'); tx.objectStore('v').put(val, key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); } catch (e) {} }
+async function idbAll(){ try { const db = await idb(); return await new Promise((res, rej) => { const out = {}; const rq = db.transaction('v').objectStore('v').openCursor(); rq.onsuccess = () => { const c = rq.result; if (c){ out[c.key] = c.value; c.continue(); } else res(out); }; rq.onerror = () => rej(rq.error); }); } catch (e){ return {}; } }
+idbAll().then(all => Object.entries(all).forEach(([ns, v]) => { if (!vocab[ns] && v && Array.isArray(v.terms)) vocab[ns] = { status: 'ready', terms: v.terms, from: v.from }; }));
+
+let rdfxmlP = null;
+function rdfxmlModule(){
+  if (!rdfxmlP) rdfxmlP = new Promise((res, rej) => {
+    if (window.RdfXml) return res(window.RdfXml);
+    const s = document.createElement('script'); s.src = 'lib/rdfxml.min.js';
+    s.onload = () => window.RdfXml ? res(window.RdfXml) : rej(new Error('RDF/XML 모듈을 읽지 못했습니다'));
+    s.onerror = () => { rdfxmlP = null; rej(new Error('RDF/XML 모듈을 받지 못했습니다')); };
+    document.head.append(s);
+  });
+  return rdfxmlP;
+}
+const looksXml = t => /^\s*(<\?xml|<!--|<!DOCTYPE|<[A-Za-z_][\w.\-]*:RDF\b|<RDF\b)/.test(t);
+async function indexVocab(text, ns, base){
+  const quads = looksXml(text) ? await (await rdfxmlModule()).parse(text, base) : new N3.Parser({ baseIRI: base }).parse(text);
+  const types = new Map(), labels = new Map(), defs = new Map();
+  const LBL = [STD.rdfs + 'label', 'http://www.w3.org/2004/02/skos/core#prefLabel'];
+  const DEF = ['http://www.w3.org/2004/02/skos/core#definition', STD.rdfs + 'comment', 'http://purl.org/dc/terms/description'];
+  for (const q of quads){
+    if (q.subject.termType !== 'NamedNode') continue;
+    const s = q.subject.value, p = q.predicate.value, o = q.object;
+    if (p === STD.rdf + 'type' && KIND_OF[o.value]){
+      const k = KIND_OF[o.value], prev = types.get(s);
+      if (!prev || ((prev === 'prop' || prev === 'ann') && (k === 'op' || k === 'dp'))) types.set(s, k);
+    } else if (o.termType === 'Literal' && LBL.includes(p)){ if (!labels.has(s)) labels.set(s, []); labels.get(s).push(o); }
+    else if (o.termType === 'Literal' && DEF.includes(p) && !defs.has(s)) defs.set(s, o.value);
+  }
+  const want = [state.meta.lang || '', 'ko', 'en', ''];
+  const mk = ([s, k]) => {
+    const ls = labels.get(s) || [];
+    const l = want.map(w => ls.find(x => (x.language || '') === w)).find(Boolean) || ls[0];
+    return { iri: s, kind: k, label: l ? l.value : s.replace(/^.*[#/]/, ''), def: (defs.get(s) || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 160) };
+  };
+  let terms = [...types.entries()].filter(([s]) => s.startsWith(ns)).map(mk);
+  if (!terms.length) terms = [...types.entries()].map(mk);   // 네임스페이스가 다르게 적힌 파일
+  return terms;
+}
+async function loadVocab(ns){
+  const src = SOURCES[ns]; if (!src || !src.url) return;
+  if (vocab[ns] && vocab[ns].status === 'loading') return;
+  const v = vocab[ns] = { status: 'loading', loaded: 0, total: 0, phase: '받는 중', ctl: new AbortController() };
+  refreshCombo();
+  let last = 0;
+  try {
+    const r = await fetch(src.url, { signal: v.ctl.signal });
+    if (!r.ok) throw new Error(`서버 응답 ${r.status}`);
+    v.total = +(r.headers.get('content-length') || 0);
+    let text;
+    if (r.body && r.body.getReader){
+      const rd = r.body.getReader(), parts = [];
+      for (;;){ const { done, value } = await rd.read(); if (done) break; parts.push(value); v.loaded += value.length; if (performance.now() - last > 120){ last = performance.now(); refreshCombo(); } }
+      const all = new Uint8Array(v.loaded); let o = 0; parts.forEach(pt => { all.set(pt, o); o += pt.length; });
+      text = new TextDecoder().decode(all);
+    } else { text = await r.text(); v.loaded = text.length; }
+    v.phase = '용어 정리 중'; refreshCombo(); await tick();
+    const terms = await indexVocab(text, ns, src.url);
+    if (!terms.length) throw new Error('파일에서 용어를 찾지 못했습니다');
+    vocab[ns] = { status: 'ready', terms, from: src.url };
+    idbPut(ns, { terms, from: src.url, at: Date.now() });
+  } catch (e){
+    vocab[ns] = e.name === 'AbortError' ? { status: 'idle' } : { status: 'error', error: /Failed to fetch|NetworkError/i.test(e.message) ? '받지 못했습니다 (네트워크 문제이거나 사이트가 막음)' : e.message };
+  }
+  refreshCombo();
+}
+async function uploadVocab(ns, file){
+  vocab[ns] = { status: 'loading', loaded: file.size, total: file.size, phase: '파일 읽는 중' }; refreshCombo();
+  try {
+    const text = await file.text();
+    vocab[ns].phase = '용어 정리 중'; refreshCombo(); await tick();
+    const terms = await indexVocab(text, ns, ns);
+    if (!terms.length) throw new Error('클래스나 속성을 찾지 못했습니다');
+    vocab[ns] = { status: 'ready', terms, from: 'file:' + file.name };
+    idbPut(ns, { terms, from: 'file:' + file.name, at: Date.now() });
+    toast(`${file.name}: 용어 ${terms.length}개를 불러왔습니다. 이름 칸에 검색어를 입력하세요.`);
+  } catch (e){ vocab[ns] = { status: 'error', error: '파일을 읽지 못했습니다: ' + e.message }; }
+  refreshCombo();
+}
+function compactIri(iri){
+  const pm = prefixMap();
+  for (const [p, ns] of Object.entries(pm)) if (ns && iri.startsWith(ns) && SAFE_LOCAL.test(iri.slice(ns.length))) return `${p}:${iri.slice(ns.length)}`;
+  return iri;
+}
+const importedLabel = iri => { const t = (state.meta.imports || []).find(x => x.iri === iri); return t ? t.label : ''; };
+function pinImport(t){
+  const m = state.meta; m.imports = m.imports || [];
+  if (!m.imports.some(x => x.iri === t.iri)) m.imports.push({ iri: t.iri, label: t.label, kind: t.kind });
+}
+const nodeTitle = n => n.label || importedLabel(fullIri(n.name)) || n.name || '(이름 없음)';
+const edgeTitle = e => e.label || importedLabel(fullIri(e.name)) || e.name || '';
+
+/* ---------- 드롭다운: 이 온톨로지 + 가져온 외부 용어 + 외부 온톨로지 ---------- */
+function sourceRowHTML(x){
+  const src = SOURCES[x.iri] || {}, v = vocab[x.iri] || { status: 'idle' };
+  const name = (PRESETS.find(p => p.iri === x.iri) || {}).name || x.iri;
+  const btn = (act, t) => `<button type="button" data-act="${act}" data-ns="${esc(x.iri)}">${t}</button>`;
+  let info = '', bar = '', right = '';
+  if (v.status === 'loading'){
+    const pct = v.total && v.loaded <= v.total ? Math.round(v.loaded / v.total * 100) : null;
+    info = `${v.phase} · ${fmtBytes(v.loaded)}${v.total && pct !== null ? ' / ' + fmtBytes(v.total) : ''}`;
+    bar = `<span class="bar"><i style="width:${pct === null ? 100 : pct}%"></i></span>`;
+    right = v.ctl ? btn('cancel', '취소') : '';
+  } else if (v.status === 'ready'){
+    info = `불러옴 · 용어 ${v.terms.length}개${v.from && v.from.startsWith('file:') ? ' · ' + esc(v.from.slice(5)) : ''} · 이름 칸에 검색어를 입력하세요`;
+    right = src.url ? btn('load', '다시 받기') : btn('file', '다른 파일');
+  } else if (v.status === 'error'){
+    info = esc(v.error); right = (src.url ? btn('load', '다시 시도') : '') + btn('file', '파일로 추가');
+  } else if (src.url){
+    info = `${src.size} · ${src.format}`; right = btn('load', '불러오기');
+  } else {
+    info = esc(src.note || '이 온톨로지 파일을 올리면 용어를 찾을 수 있습니다.') + (src.manual ? ` <a href="${src.manual}" target="_blank" rel="noopener">받는 곳 열기</a>` : '');
+    right = btn('file', '파일로 추가');
+  }
+  return `<div class="combo-src"><div class="cs-main"><b>${esc(name)}</b> <span class="mono">${esc(x.p)}:</span><span class="hint">${info}</span>${bar}</div><div class="cs-act">${right}</div></div>`;
+}
+function searchVocab(q, want, limit){
+  const out = []; let total = 0;
+  extraList(state.meta).forEach(x => {
+    const v = vocab[x.iri]; if (!v || v.status !== 'ready') return;
+    v.terms.forEach(t => {
+      if (!kindOk(t.kind, want)) return;
+      const lab = t.label.toLowerCase(), loc = t.iri.replace(/^.*[#/]/, '').toLowerCase();
+      if (!lab.includes(q) && !loc.includes(q)) return;
+      total++; out.push({ t, score: (lab.startsWith(q) || loc.startsWith(q) ? 0 : 1) * 1000 + lab.length });
+    });
+  });
+  out.sort((a, b) => a.score - b.score);
+  return { list: out.slice(0, limit).map(o => o.t), total };
+}
 function attachCombos(root, providers){
   root.querySelectorAll('input[data-combo]').forEach(inp => {
     const wrap = inp.parentElement, menu = wrap.querySelector('.combo-menu'), btn = wrap.querySelector('.combo-btn');
     const prov = providers[inp.dataset.combo]; if (!prov) return;
-    let items = [], act = -1;
-    const close = () => { menu.hidden = true; act = -1; };
+    let items = [], act = -1, lastAll = false, picking = false;
+    const close = () => { menu.hidden = true; act = -1; if (activeCombo && activeCombo.menu === menu) activeCombo = null; };
     const hl = () => menu.querySelectorAll('.combo-item').forEach((b, i) => { b.classList.toggle('act', i === act); if (i === act) b.scrollIntoView({ block: 'nearest' }); });
-    const pick = o => { inp.value = o.value; inp.dispatchEvent(new Event('input', { bubbles: true })); if (prov.onPick) prov.onPick(inp, o); close(); };
+    const pick = o => {
+      inp.value = o.value; inp.dispatchEvent(new Event('input', { bubbles: true }));
+      if (o.ext){ pinImport(o.ext); if (prov.onExt) prov.onExt(inp, o.ext); }
+      if (prov.onPick) prov.onPick(inp, o);
+      renderCanvas(); persist(); close();
+    };
+    const itemHTML = o => { items.push(o); return `<button type="button" role="option" class="combo-item" data-i="${items.length - 1}">${o.badge ? `<span class="chip info">${esc(o.badge)}</span> ` : ''}<b>${esc(o.title)}</b>${o.sub && o.sub !== o.title ? ` <span class="mono">${esc(o.sub)}</span>` : ''}<span class="hint">${esc(o.hint || '')}</span></button>`; };
     const open = all => {
-      const q = inp.value.trim().toLowerCase(), opts = prov.list(inp);
-      items = all || !q || opts.some(o => o.value.toLowerCase() === q) ? opts : opts.filter(o => (o.value + ' ' + o.title).toLowerCase().includes(q));
-      menu.innerHTML = items.length
-        ? items.map((o, i) => `<button type="button" role="option" class="combo-item" data-i="${i}">${o.badge ? `<span class="chip info">${esc(o.badge)}</span> ` : ''}<b>${esc(o.title)}</b>${o.sub && o.sub !== o.title ? ` <span class="mono">${esc(o.sub)}</span>` : ''}<span class="hint">${esc(o.hint)}</span></button>`).join('')
-        : `<div class="combo-empty">${opts.length ? '맞는 항목이 없습니다. 입력한 이름으로 새로 만듭니다.' : '아직 정의된 항목이 없습니다.'}</div>`;
-      menu.hidden = false; act = -1;
+      lastAll = all; items = [];
+      const q = inp.value.trim().toLowerCase(), opts = prov.list(inp), want = prov.ext;
+      const local = all || !q || opts.some(o => o.value.toLowerCase() === q) ? opts : opts.filter(o => (o.value + ' ' + o.title).toLowerCase().includes(q));
+      let html = '';
+      if (local.length) html += (want ? '<div class="combo-sec">이 온톨로지</div>' : '') + local.map(itemHTML).join('');
+      if (want){
+        const eq = (all ? '' : q);
+        const pinned = (state.meta.imports || []).filter(t => kindOk(t.kind, want) && (!eq || (t.label + ' ' + t.iri).toLowerCase().includes(eq)) && compactIri(t.iri) !== inp.value.trim());
+        if (pinned.length) html += '<div class="combo-sec">가져온 외부 용어</div>' + pinned.map(t => itemHTML({ value: compactIri(t.iri), title: t.label, sub: compactIri(t.iri), hint: KIND_KO[t.kind], ext: t })).join('');
+        if (eq){
+          const r = searchVocab(eq, want, 30);
+          if (r.total) html += `<div class="combo-sec">외부에서 찾음 · ${r.total}개${r.total > 30 ? ' (앞 30개)' : ''}</div>` + r.list.map(t => itemHTML({ value: compactIri(t.iri), title: t.label, sub: compactIri(t.iri), hint: t.def || KIND_KO[t.kind], ext: t })).join('');
+        }
+        const extras = extraList(state.meta);
+        html += '<div class="combo-sec">외부 온톨로지</div>' + (extras.length ? extras.map(sourceRowHTML).join('') : '<div class="combo-empty">온톨로지 카드 설정의 "외부 온톨로지"에서 추가하면 여기서 용어를 불러올 수 있습니다.</div>');
+      }
+      if (!items.length && !want) html = `<div class="combo-empty">${opts.length ? '맞는 항목이 없습니다. 입력한 이름으로 새로 만듭니다.' : '아직 정의된 항목이 없습니다.'}</div>`;
+      menu.innerHTML = html; menu.hidden = false; act = -1;
+      activeCombo = { menu, reopen: () => { const st = menu.scrollTop; open(lastAll); menu.scrollTop = st; } };
       menu.querySelectorAll('.combo-item').forEach(b => { b.addEventListener('mousedown', ev => ev.preventDefault()); b.addEventListener('click', () => pick(items[+b.dataset.i])); });
+      menu.querySelectorAll('.combo-src button').forEach(b => {
+        b.addEventListener('mousedown', ev => ev.preventDefault());
+        b.addEventListener('click', () => {
+          const ns = b.dataset.ns;
+          if (b.dataset.act === 'load') loadVocab(ns);
+          else if (b.dataset.act === 'cancel'){ const v = vocab[ns]; if (v && v.ctl) v.ctl.abort(); }
+          else if (b.dataset.act === 'file'){
+            const fi = document.createElement('input'); fi.type = 'file'; fi.accept = '.ttl,.rdf,.owl,.xml,.nt,.n3,text/turtle,application/rdf+xml';
+            picking = true;
+            fi.onchange = () => { picking = false; const f = fi.files[0]; if (f) uploadVocab(ns, f); };
+            fi.click();
+          }
+        });
+      });
+      menu.querySelectorAll('.combo-src a').forEach(a => a.addEventListener('mousedown', ev => ev.preventDefault()));
     };
     btn.addEventListener('mousedown', ev => ev.preventDefault());
     btn.addEventListener('click', () => { if (!menu.hidden) return close(); inp.focus(); open(true); });
     inp.addEventListener('input', ev => { if (ev.isTrusted) open(false); });
-    inp.addEventListener('blur', () => setTimeout(close, 120));
+    inp.addEventListener('blur', () => setTimeout(() => { if (!picking && document.activeElement !== inp) close(); }, 150));
     inp.addEventListener('keydown', ev => {
       if (ev.key === 'ArrowDown'){ ev.preventDefault(); if (menu.hidden) open(true); else { act = Math.min(items.length - 1, act + 1); hl(); } }
       else if (ev.key === 'ArrowUp' && !menu.hidden){ ev.preventDefault(); act = Math.max(0, act - 1); hl(); }
@@ -728,13 +924,15 @@ function nodePanel(p, n){
   p.innerHTML = `<h3>${indiv ? '개체 (individual)' : '클래스'}</h3>
     ${field('종류', `<div class="seg"><button data-nk="class" class="${indiv ? '' : 'on'}">클래스 (TBox)</button><button data-nk="individual" class="${indiv ? 'on' : ''}">개체 (ABox)</button></div>`)}
     ${(() => {
-      const labelF = field('라벨 (rdfs:label)', `<input type="text" data-f="label" value="${esc(n.label)}"${iriFirst() ? ' placeholder="비워 두면 IRI 이름이 보입니다"' : ''}>`);
-      const nameF = field('이름 (IRI)', `<div class="orow"><input type="text" class="mono" data-f="name" value="${esc(n.name)}">${iriFirst() ? '' : autoChip(n.nameAuto, '라벨')}</div>`,
+      const il = importedLabel(fullIri(n.name));
+      const labelF = field('라벨 (rdfs:label)', `<input type="text" data-f="label" value="${esc(n.label)}"${il ? ` placeholder="비워 두면 외부 라벨 “${esc(il)}”이 보입니다"` : iriFirst() ? ' placeholder="비워 두면 IRI 이름이 보입니다"' : ''}>`);
+      const nameInput = indiv ? `<input type="text" class="mono" data-f="name" value="${esc(n.name)}">` : comboHTML(`class="mono" data-f="name" value="${esc(n.name)}"`, 'cls');
+      const nameF = field('이름 (IRI)', `<div class="orow">${nameInput}${iriFirst() ? '' : autoChip(n.nameAuto, '라벨')}</div>`,
         `<div class="hint" id="iriPrev"></div><div class="warn" id="dupWarn"${dupe ? '' : ' hidden'}>같은 이름의 노드가 이미 있습니다.</div>`);
       return iriFirst() ? nameF + labelF : labelF + nameF; })()}
     ${indiv ? `<h4>타입 (rdf:type)</h4>
-      <div>${types.map(c => `<span class="tag">${esc(c.label || c.name)}<button data-untype="${c.id}" title="타입 해제">×</button></span>`).join('') || '<div class="hint" style="margin:0 0 8px">아직 타입이 없습니다. 개체 테두리를 끌어 클래스에 놓거나 아래에서 고르세요.</div>'}</div>
-      ${classes.length ? `<select id="addType" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px;margin-bottom:12px"><option value="">+ 타입 추가…</option>${classes.map(c => `<option value="${c.id}">${esc(c.label || c.name)}</option>`).join('')}</select>` : ''}` : ''}
+      <div>${types.map(c => `<span class="tag">${esc(nodeTitle(c))}<button data-untype="${c.id}" title="타입 해제">×</button></span>`).join('') || '<div class="hint" style="margin:0 0 8px">아직 타입이 없습니다. 개체 테두리를 끌어 클래스에 놓거나 아래에서 고르세요.</div>'}</div>
+      ${classes.length ? `<select id="addType" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px;margin-bottom:12px"><option value="">+ 타입 추가…</option>${classes.map(c => `<option value="${c.id}">${esc(nodeTitle(c))}</option>`).join('')}</select>` : ''}` : ''}
     ${field('설명 (rdfs:comment)', `<textarea data-f="comment">${esc(n.comment)}</textarea>`)}
     <h4>${indiv ? '데이터 값' : '데이터 속성 (owl:DatatypeProperty)'}</h4>
     <div id="attrs">${n.attrs.map((a, i) => indiv ? `<div class="vrow">
@@ -747,6 +945,7 @@ function nodePanel(p, n){
         <button class="x" data-del="${i}" title="삭제">×</button></div>`).join('')}</div>
     <button class="btn" id="addAttr">+ ${indiv ? '데이터 값 추가' : '데이터 속성 추가'}</button>
     ${indiv ? '<div class="hint">속성 칸의 ▾를 누르면 클래스에 정의한 데이터 속성 목록이 나옵니다. 이 개체의 타입에 맞는 것은 "추천"으로 표시됩니다.</div>' : ''}
+    ${indiv ? '' : `<h4>이어서 만들기</h4><div class="mkrow"><button class="btn" id="mkSub">+ 하위 클래스</button><button class="btn" id="mkInd">+ 이 클래스의 개체</button></div>`}
     <h4>색상</h4>
     ${(() => { const a = autoColor(n); return `<button class="swauto${n.color ? '' : ' on'}" data-color=""><i style="background:${a.fill};border-color:${a.stroke}"></i>자동 (${esc(a.name)})</button>`; })()}
     <div class="swatches">${PALETTE.map(c => `<button class="swatch${c.fill === n.color ? ' on' : ''}" data-color="${c.fill}" title="${esc(c.name)}" aria-label="${esc(c.name)}" style="background:${c.fill};border-color:${c.stroke}"></button>`).join('')}</div>
@@ -774,7 +973,7 @@ function nodePanel(p, n){
     setAutoChip(n.nameAuto, '라벨'); prev(); $('#dupWarn').hidden = !state.nodes.some(o => o !== n && o.name === n.name);
     renderCanvas(); persist();
   });
-  attachCombos(p, { dp: { list: inp => dpOptions(n, n.attrs[+inp.dataset.ai]) } });
+  attachCombos(p, { dp: { list: inp => dpOptions(n, n.attrs[+inp.dataset.ai]), ext: 'dp' }, cls: { list: () => [], ext: 'class', onExt: () => { n.nameAuto = false; setAutoChip(false, '라벨'); prev(); } } });
   p.querySelectorAll('[data-nk]').forEach(b => b.addEventListener('click', () => setNodeKind(n, b.dataset.nk)));
   p.querySelectorAll('[data-untype]').forEach(b => b.addEventListener('click', () => {
     checkpoint(); state.edges = state.edges.filter(e => !(e.from === n.id && e.to === b.dataset.untype && e.kind === 'type')); renderAll(); persist();
@@ -817,6 +1016,22 @@ function nodePanel(p, n){
   }));
   p.querySelectorAll('[data-goto]').forEach(li => li.addEventListener('click', () => select({ type: 'edge', id: li.dataset.goto })));
   $('#delBtn').addEventListener('click', deleteSelection);
+  const mk = (kind, dy) => {
+    checkpoint();
+    const pos = placeNear(n, dy), c = addNode(pos.x, pos.y, kind), e = addEdge(c.id, n.id);
+    if (kind === 'class') e.kind = 'subclass';
+    selection = { type: 'node', id: c.id }; renderAll(); persist(); focusField(primaryField());
+  };
+  if ($('#mkSub')){ $('#mkSub').onclick = () => mk('class', 150); $('#mkInd').onclick = () => mk('individual', 170); }
+}
+/** 노드 아래쪽 빈 자리 찾기 */
+function placeNear(n, dy){
+  const y = n.y + dy;
+  for (let k = 0; k < 24; k++){
+    const x = n.x + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 180;
+    if (!state.nodes.some(o => Math.abs(o.x - x) < 160 && Math.abs(o.y - y) < 70)) return { x, y };
+  }
+  return { x: n.x + 200, y };
 }
 function edgePanel(p, e){
   const a = nodeById(e.from), b = nodeById(e.to);
@@ -879,7 +1094,7 @@ function edgePanel(p, e){
       if (e.nameAuto){ const nm = deriveName(e.label, 'prop'); if (nm){ e.name = nm; p.querySelector('[data-f=name]').value = nm; } }
       setAutoChip(e.nameAuto, '라벨'); prev(); renderCanvas(); persist();
     });
-    attachCombos(p, { op: { list: () => opOptions(e), onPick: (inp, o) => {
+    attachCombos(p, { op: { list: () => opOptions(e), ext: 'op', onPick: (inp, o) => {
       // 같은 속성을 골랐으면 라벨도 그 속성의 라벨로
       const def = state.edges.find(x => x !== e && x.kind === 'object' && x.name === o.value && x.label);
       if (def){ e.label = def.label; p.querySelector('[data-f=label]').value = def.label; }
@@ -1005,6 +1220,7 @@ function toTurtle(){
     const s = edgeShape(e);
     if (s === 'CC') layout.edges.push([fullIri(a.name, pm), e.kind === 'subclass' ? 'sub' : fullIri(e.name, pm), fullIri(b.name, pm)]);
   });
+  if ((m.imports || []).length) layout.imports = m.imports.map(t => [t.iri, t.label, t.kind]);
   out.push('# 아래 줄은 RDF Arrows가 다시 불러올 때 쓰는 배치 정보입니다 (주석이라 다른 도구는 무시합니다).');
   out.push('# ' + LAYOUT_TAG + ' ' + JSON.stringify(layout));
   return out.join('\n') + '\n';
@@ -1095,7 +1311,12 @@ function importTurtle(text){
   const nsOf = iri => iri.replace(/[^#/]*$/, '');
   const nsCount = new Map();
   [...classIris, ...indivIris].forEach(c => nsCount.set(nsOf(c), (nsCount.get(nsOf(c)) || 0) + 1));
-  const base = [...nsCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || (ontoSub ? ontoSub.value + '#' : 'http://example.org/onto#');
+  // 온톨로지 IRI와 맞는 네임스페이스 우선, 다음은 알려진 외부 온톨로지를 뺀 가장 많이 쓰인 것
+  const knownExt = new Set(PRESETS.map(x => x.iri).concat(Object.values(STD)));
+  const byCount = [...nsCount.entries()].sort((a, b) => b[1] - a[1]);
+  const ontoNs = ontoSub ? [ontoSub.value + '#', ontoSub.value + '/', ontoSub.value.replace(/[#/]$/, '') + '#', ontoSub.value.replace(/[#/]$/, '') + '/'] : [];
+  const declared = ontoSub ? Object.values(prefixes).find(v => ontoNs.includes(v)) : null;
+  const base = ontoNs.find(ns => nsCount.has(ns)) || declared || (byCount.find(([ns]) => !knownExt.has(ns)) || byCount[0] || [])[0] || (ontoSub ? ontoSub.value + '#' : 'http://example.org/onto#');
   const prefix = Object.keys(prefixes).find(k => prefixes[k] === base && k !== '') ?? (Object.keys(prefixes).find(k => prefixes[k] === base) ?? 'ex');
   const lang = (() => {
     const langs = new Map();
@@ -1133,6 +1354,7 @@ function importTurtle(text){
   let layout = null;
   const lm = text.match(new RegExp('^#\\s*' + LAYOUT_TAG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*(\\{.*\\})\\s*$', 'm'));
   if (lm){ try { layout = JSON.parse(lm[1]); } catch (e) {} }
+  if (layout && Array.isArray(layout.imports)) meta.imports = layout.imports.filter(x => Array.isArray(x) && x[0]).map(([iri, label, kind]) => ({ iri, label: label || '', kind: kind || 'class' }));
 
   // 상속
   classIris.forEach(iri => objs(term(iri), RS + 'subClassOf').forEach(o => {
@@ -1488,7 +1710,7 @@ function iriIndex(){
   state.nodes.forEach(n => n.attrs.forEach(a => { if (a.name) prop.set(fullIri(a.name, pm), { attr: a, node: n }); }));
   return { node, prop };
 }
-const nm = n => n ? (n.label || n.name) : '?';
+const nm = n => n ? nodeTitle(n) : '?';
 function goLink(kind, id, text){ return `<a class="go" data-go-${kind}="${esc(id)}">${esc(text)}</a>`; }
 
 /* --- 1. 추론 (브라우저 안 OWL RL 규칙 일부) --- */
@@ -1835,7 +2057,6 @@ setInterval(() => { if (!$('#checkModal').hidden) updateQuota(); }, 1000);
 
 /* ---------- 온톨로지 카드 (캔버스 왼쪽 위) ---------- */
 const PRESETS = [
-  { p: 'cco', iri: 'https://www.commoncoreontologies.org/', name: 'Common Core Ontologies' },
   { p: 'obo', iri: 'http://purl.obolibrary.org/obo/', name: 'Basic Formal Ontology (OBO)' },
   { p: 'schema', iri: 'https://schema.org/', name: 'schema.org' },
   { p: 'skos', iri: 'http://www.w3.org/2004/02/skos/core#', name: 'SKOS' },
@@ -1910,7 +2131,7 @@ function cardBody(m){
         <div class="hint" style="margin:8px 0 4px">목록에 없으면 직접 추가</div>
         <div class="orow"><input type="text" id="oNewP" class="mono" placeholder="접두어" style="width:90px;flex:none"><input type="text" id="oNewI" class="mono" placeholder="https://…"><button class="btn" id="oNewAdd">추가</button></div>
         <div class="warn" id="oNewWarn" hidden></div>
-      </div>` : `<div class="hint">추가한 접두어는 클래스 이름에 <span class="mono">schema:Person</span>처럼 쓸 수 있고, 외부 클래스는 점선 테두리로 보입니다.</div>`}
+      </div>` : `<div class="hint">추가한 온톨로지의 용어는 이름 칸의 ▾ 목록에서 불러와 라벨로 찾을 수 있습니다. 외부 클래스는 점선 테두리로 보입니다.</div>`}
     </div>
     <button class="olink" id="oAdvBtn" aria-expanded="${ui.adv}">${ui.adv ? '▾' : '▸'} 고급 설정 <span class="hint">(접두어, 구분 기호, 온톨로지 IRI, 언어 태그)</span></button>
     ${ui.adv ? `<div class="oadv">
