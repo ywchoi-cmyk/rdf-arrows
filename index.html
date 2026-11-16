@@ -58,6 +58,11 @@ main{position:absolute;top:52px;left:0;right:0;bottom:0;display:flex}
 .swatches{display:flex;gap:6px}
 .swatch{width:24px;height:24px;border-radius:50%;border:1px solid #c9ced6}
 .swatch.on{outline:2px solid var(--accent);outline-offset:2px}
+#panel .swatches{display:grid;grid-template-columns:repeat(12,20px);gap:5px;margin-bottom:6px}
+#panel .swatch{width:20px;height:20px}
+.swauto{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:16px;padding:3px 10px 3px 4px;font-size:12.5px;margin-bottom:8px}
+.swauto.on{border:2px solid var(--accent)}
+.swauto i{width:20px;height:20px;border-radius:50%;display:inline-block;border:1.4px solid}
 .check{display:flex;gap:8px;align-items:center;font-size:13px}
 .linklist{list-style:none;padding:0;margin:0}
 .linklist li{padding:5px 6px;border-radius:5px;cursor:pointer;font-size:13px}
@@ -90,7 +95,7 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid #cfd4db;border-botto
 #dropOverlay.on{display:flex}
 
 /* SVG */
-.node .body{stroke:#9aa2ad;stroke-width:1.2}
+.node .body{stroke-width:1.3}
 .node.external .body{stroke-dasharray:5 3}
 .node.dup .body{stroke:var(--danger);stroke-width:2}
 .node.selected .body{stroke:var(--accent);stroke-width:2.2}
@@ -112,7 +117,6 @@ kbd{font-family:var(--mono);font-size:11px;border:1px solid #cfd4db;border-botto
 .edge.sub .ltext{fill:var(--sub);font-style:italic;font-size:11px}
 .edge .pill,.edge .ltext{cursor:pointer}
 .temp{stroke:var(--accent);stroke-width:1.6;stroke-dasharray:6 4;fill:none;pointer-events:none}
-.node.indiv .body{stroke:#b07d2a}
 .node.indiv.selected .body{stroke:var(--accent)}
 .node.indiv .title{text-decoration:underline}
 .edge.type .line{stroke:#b07d2a;stroke-dasharray:5 4}
@@ -302,7 +306,23 @@ const STD = {
   xsd: 'http://www.w3.org/2001/XMLSchema#'
 };
 const XSD_TYPES = ['xsd:string','xsd:integer','xsd:decimal','xsd:double','xsd:boolean','xsd:date','xsd:dateTime','xsd:anyURI','rdf:langString','rdfs:Literal'];
-const COLORS = ['#ffffff','#e8f0fe','#e6f4ea','#fef7e0','#fce8e6','#f3e8fd','#e0f7fa'];
+/** 채도 낮은 24색: 12색상 × 연·진 2단 [이름, 바탕, 테두리]. 글자 대비 11.6:1 이상, 테두리 3:1 이상 */
+const PALETTE = [["장미 연", "#ffe9e8", "#b77474"], ["살구 연", "#ffebdf", "#b37a5a"], ["모래 연", "#fbeeda", "#a4834b"], ["올리브 연", "#f3f2db", "#918c4d"], ["연두 연", "#ebf4de", "#7d9258"], ["초록 연", "#e3f6e6", "#63986e"], ["청록 연", "#daf7f4", "#409a94"], ["하늘 연", "#dcf5ff", "#4994b0"], ["파랑 연", "#e3f2ff", "#668cbc"], ["남색 연", "#edeeff", "#8482bb"], ["보라 연", "#f8ebfe", "#9d79ad"], ["자주 연", "#ffe8f3", "#b07490"], ["장미 진", "#ffd5ca", "#ab6553"], ["살구 진", "#f8dabe", "#a16e39"], ["모래 진", "#eae0bb", "#8c7930"], ["올리브 진", "#dbe5c0", "#73833e"], ["연두 진", "#cfe8c9", "#5b8851"], ["초록 진", "#c2ebd7", "#398c6c"], ["청록 진", "#baeaef", "#158a95"], ["하늘 진", "#c3e5fe", "#3f81ad"], ["파랑 진", "#d2dfff", "#6477b3"], ["남색 진", "#e4d9fd", "#836daa"], ["보라 진", "#f4d4f0", "#9a6595"], ["자주 진", "#fed3db", "#a96173"]].map(([name, fill, stroke]) => ({ name, fill, stroke }));
+const NO_TYPE = { name: '타입 없음', fill: '#f6f7f9', stroke: '#9aa2ad' };
+const OLD_DEFAULTS = new Set(['#ffffff', '#fffaf0']);   // 예전 버전의 기본색 = 자동으로 취급
+function fnv1a(str){ let h = 0x811c9dc5; for (const b of new TextEncoder().encode(str)){ h ^= b; h = Math.imul(h, 0x01000193) >>> 0; } return h; }
+const paletteByFill = fill => PALETTE.find(c => c.fill === fill) || { name: '직접 지정', fill, stroke: '#9aa2ad' };
+/** 자동 색: 클래스는 IRI 해시, 개체는 첫 번째 타입 클래스의 색, 타입이 없으면 회색 */
+function autoColor(n, seen){
+  if (isIndiv(n)){
+    const t = typesOf(n)[0];
+    if (!t) return NO_TYPE;
+    seen = seen || new Set(); if (seen.has(t.id)) return NO_TYPE; seen.add(t.id);
+    return colorOf(t, seen);
+  }
+  return PALETTE[fnv1a(fullIri(n.name)) % PALETTE.length];
+}
+const colorOf = (n, seen) => n.color ? paletteByFill(n.color) : autoColor(n, seen);
 
 /* ---------- 상태 ---------- */
 function blankState(){
@@ -438,7 +458,7 @@ function addNode(x, y, kind = 'class'){
   const used = classNames();
   let k = state.nodes.filter(n => isIndiv(n) === indiv).length + 1, label, name;
   do { label = indiv ? `개체 ${k}` : `클래스 ${k}`; name = deriveName(label, indiv ? 'prop' : 'class'); k++; } while (used.has(name));
-  const n = { id: uid('n'), kind: indiv ? 'individual' : 'class', x, y, label, name, nameAuto: true, comment: '', color: indiv ? '#fffaf0' : COLORS[0], attrs: [] };
+  const n = { id: uid('n'), kind: indiv ? 'individual' : 'class', x, y, label, name, nameAuto: true, comment: '', color: null, attrs: [] };
   state.nodes.push(n); return n;
 }
 function addEdge(from, to){
@@ -535,7 +555,8 @@ function drawNode(n, s, dup){
   const g = el('g', { class: cls.join(' '), 'data-node': n.id, transform: `translate(${n.x - s.w / 2},${n.y - s.h / 2})` });
   const rx = indiv ? Math.min(s.h / 2, 20) : 8;
   g.append(el('rect', { class: 'halo', 'data-halo': n.id, x: -10, y: -10, width: s.w + 20, height: s.h + 20, rx: rx + 8 }));
-  g.append(el('rect', { class: 'body', x: 0, y: 0, width: s.w, height: s.h, rx, fill: n.color || '#fff' }));
+  const col = colorOf(n);
+  g.append(el('rect', { class: 'body', x: 0, y: 0, width: s.w, height: s.h, rx, fill: col.fill, stroke: col.stroke }));
   g.append(el('text', { class: 'title', x: s.w / 2, y: 23, 'text-anchor': 'middle' }, n.label || n.name || '(이름 없음)'));
   if (s.sub) g.append(el('text', { class: 'sub', x: s.w / 2, y: 37, 'text-anchor': 'middle' }, s.sub));
   if (n.attrs.length){
@@ -653,7 +674,9 @@ function nodePanel(p, n){
     <button class="btn" id="addAttr">+ ${indiv ? '데이터 값 추가' : '데이터 속성 추가'}</button>
     ${indiv ? '<div class="hint">속성 이름에는 클래스에 정의한 데이터 속성이 자동완성으로 나옵니다.</div>' : ''}
     <h4>색상</h4>
-    <div class="swatches">${COLORS.map(c => `<button class="swatch${c === n.color ? ' on' : ''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
+    ${(() => { const a = autoColor(n); return `<button class="swauto${n.color ? '' : ' on'}" data-color=""><i style="background:${a.fill};border-color:${a.stroke}"></i>자동 (${esc(a.name)})</button>`; })()}
+    <div class="swatches">${PALETTE.map(c => `<button class="swatch${c.fill === n.color ? ' on' : ''}" data-color="${c.fill}" title="${esc(c.name)}" aria-label="${esc(c.name)}" style="background:${c.fill};border-color:${c.stroke}"></button>`).join('')}</div>
+    <div class="hint">${indiv ? '자동이면 첫 번째 타입 클래스의 색을 씁니다.' : '자동이면 IRI로 색이 정해져, 같은 클래스는 어느 파일에서나 같은 색입니다.'}</div>
     ${links.length ? `<h4>연결된 관계</h4><ul class="linklist">${links.map(e => {
       const o = nodeById(e.from === n.id ? e.to : e.from);
       const txt = e.from === n.id ? `→ ${esc(linkLabel(e))} → ${esc(o ? (o.label || o.name) : '?')}` : `← ${esc(linkLabel(e))} ← ${esc(o ? (o.label || o.name) : '?')}`;
@@ -710,7 +733,7 @@ function nodePanel(p, n){
     if (last){ last.focus(); last.select(); }
   });
   p.querySelectorAll('[data-color]').forEach(b => b.addEventListener('click', () => {
-    checkpoint(); n.color = b.dataset.color; renderAll(); persist();
+    checkpoint(); n.color = b.dataset.color || null; renderAll(); persist();
   }));
   p.querySelectorAll('[data-goto]').forEach(li => li.addEventListener('click', () => select({ type: 'edge', id: li.dataset.goto })));
   $('#delBtn').addEventListener('click', deleteSelection);
@@ -884,7 +907,7 @@ function toTurtle(){
   }
   // 배치 정보 (주석이라 다른 도구는 무시함). 개체 관계는 트리플에서 그대로 복원되므로 넣지 않음
   const layout = { v: 2, nodes: {}, edges: [] };
-  state.nodes.forEach(n => { layout.nodes[fullIri(n.name, pm)] = [Math.round(n.x), Math.round(n.y), n.color]; });
+  state.nodes.forEach(n => { layout.nodes[fullIri(n.name, pm)] = n.color ? [Math.round(n.x), Math.round(n.y), n.color] : [Math.round(n.x), Math.round(n.y)]; });
   state.edges.forEach(e => {
     const a = nodeById(e.from), b = nodeById(e.to); if (!a || !b) return;
     const s = edgeShape(e);
@@ -1008,7 +1031,7 @@ function importTurtle(text){
   const idOf = new Map();
   const mkNode = (iri, kind) => {
     const s = term(iri);
-    const n = { id: 'n' + (st.seq++), kind, x: 0, y: 0, label: pickLit(s, RS + 'label'), name: compact(iri), nameAuto: false, comment: pickLit(s, RS + 'comment'), color: kind === 'individual' ? '#fffaf0' : COLORS[0], attrs: [] };
+    const n = { id: 'n' + (st.seq++), kind, x: 0, y: 0, label: pickLit(s, RS + 'label'), name: compact(iri), nameAuto: false, comment: pickLit(s, RS + 'comment'), color: null, attrs: [] };
     st.nodes.push(n); idOf.set(iri, n.id); return n;
   };
   classIris.forEach(iri => mkNode(iri, 'class'));
@@ -1063,7 +1086,7 @@ function importTurtle(text){
   const iriOf = new Map([...idOf.entries()].map(([iri, id]) => [id, iri]));
   if (layout && layout.nodes){
     st.nodes.forEach(n => { const v = layout.nodes[iriOf.get(n.id)];
-      if (v){ n.x = v[0]; n.y = v[1]; if (v[2]) n.color = v[2]; n.placed = true; placed++; } });
+      if (v){ n.x = v[0]; n.y = v[1]; if (v[2] && !OLD_DEFAULTS.has(v[2])) n.color = v[2]; n.placed = true; placed++; } });
   }
   if (placed < st.nodes.length) autoLayout(st, placed > 0);
   st.nodes.forEach(n => delete n.placed);
@@ -1966,7 +1989,7 @@ ex:startDate a owl:DatatypeProperty ; rdfs:domain ex:Mission ; rdfs:range xsd:da
 ex:kim a owl:NamedIndividual , ex:Person ; rdfs:label "김대위"@ko ; ex:name "김철수" ; ex:commands ex:unit1 .
 ex:unit1 a owl:NamedIndividual , ex:Unit ; rdfs:label "제1대대"@ko ; ex:assignedTo ex:mission1 .
 ex:mission1 a owl:NamedIndividual , ex:Mission ; rdfs:label "경계 임무"@ko ; ex:startDate "2026-11-20"^^xsd:date .
-# ${LAYOUT_TAG} {"v":2,"nodes":{"http://example.org/org#Person":[-260,-60,"#e8f0fe"],"http://example.org/org#Organization":[120,-200,"#e6f4ea"],"http://example.org/org#Unit":[120,20,"#e6f4ea"],"http://example.org/org#Mission":[460,20,"#fef7e0"],"http://example.org/org#kim":[-260,230,"#fffaf0"],"http://example.org/org#unit1":[120,230,"#fffaf0"],"http://example.org/org#mission1":[460,230,"#fffaf0"]}}
+# ${LAYOUT_TAG} {"v":2,"nodes":{"http://example.org/org#Person":[-260,-60],"http://example.org/org#Organization":[120,-200],"http://example.org/org#Unit":[120,20],"http://example.org/org#Mission":[460,20],"http://example.org/org#kim":[-260,230],"http://example.org/org#unit1":[120,230],"http://example.org/org#mission1":[460,230]}}
 `;
 const loadSample = () => loadText(SAMPLE, '예시');
 $('#bSample').onclick = loadSample; $('#bSample2').onclick = loadSample;
@@ -1975,11 +1998,11 @@ $('#bSample').onclick = loadSample; $('#bSample2').onclick = loadSample;
 let restored = false;
 try {
   const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-  if (saved && saved.state && Array.isArray(saved.state.nodes)){ state = saved.state; ensureMeta(state.meta); if (saved.view) view = saved.view; restored = true; }
+  if (saved && saved.state && Array.isArray(saved.state.nodes)){ state = saved.state; ensureMeta(state.meta); state.nodes.forEach(n => { if (OLD_DEFAULTS.has(n.color)) n.color = null; }); if (saved.view) view = saved.view; restored = true; }
 } catch (e) {}
 renderAll(); updateHistoryButtons();
 if (!restored) requestAnimationFrame(fit);
-window.__rdfArrows = { get state(){ return state; }, get ui(){ return ui; }, toTurtle, importTurtle, toRdfXml, OOPS, runOops, runReasoner, summarizeInference, dataChecks, get inferOverlay(){ return inferOverlay; } };
+window.__rdfArrows = { get state(){ return state; }, get ui(){ return ui; }, PALETTE, colorOf: id => colorOf(nodeById(id)), toTurtle, importTurtle, toRdfXml, OOPS, runOops, runReasoner, summarizeInference, dataChecks, get inferOverlay(){ return inferOverlay; } };
 })();
 </script>
 </body>
