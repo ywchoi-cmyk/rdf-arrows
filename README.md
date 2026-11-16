@@ -1,5 +1,7 @@
 # RDF Arrows
 
+**▶ 바로 쓰기: https://ywchoi-cmyk.github.io/rdf-arrows/**
+
 브라우저에서 바로 쓰는 노코드 온톨로지 모델러입니다. neo4j의 arrows.app처럼 캔버스에 클래스(TBox)와 개체(ABox)를 그리고 선으로 이어서 OWL 온톨로지를 만들고, Turtle(.ttl)로 내려받습니다.
 
 설치나 서버가 필요 없습니다. `index.html` 하나와 Turtle 파서(`lib/n3.min.js`)로만 돌아가고, 작업 내용은 쓰는 사람의 브라우저에만 저장됩니다.
