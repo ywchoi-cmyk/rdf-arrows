@@ -339,7 +339,7 @@ const colorOf = (n, seen) => n.color ? paletteByFill(n.color) : autoColor(n, see
 /* ---------- 상태 ---------- */
 function blankState(){
   return {
-    meta: { title: '새 온톨로지', ontologyIri: 'http://example.org/onto', baseIri: 'http://example.org/onto#', prefix: 'ex', lang: 'ko', extraPrefixes: '', sep: '#', ontoSame: true, iriAuto: true, prefixAuto: true },
+    meta: { title: '새 온톨로지', ontologyIri: 'http://example.org/onto', baseIri: 'http://example.org/onto#', prefix: 'ex', lang: 'ko', extraPrefixes: '', sep: '#', ontoSame: true, iriAuto: true, prefixAuto: true, naming: 'iri' },
     nodes: [], edges: [], seq: 1
   };
 }
@@ -465,11 +465,14 @@ function tboxPropFor(a, b){
 
 /* ---------- 변경 ---------- */
 let addKind = 'class';
+const iriFirst = () => (state.meta.naming || 'iri') !== 'label';
+const primaryField = () => iriFirst() ? 'name' : 'label';
 function addNode(x, y, kind = 'class'){
   const indiv = kind === 'individual';
   const used = classNames();
   let k = state.nodes.filter(n => isIndiv(n) === indiv).length + 1, label, name;
-  do { label = indiv ? `개체 ${k}` : `클래스 ${k}`; name = deriveName(label, indiv ? 'prop' : 'class'); k++; } while (used.has(name));
+  if (iriFirst()) do { label = ''; name = (indiv ? 'individual' : 'Class') + k; k++; } while (used.has(name));
+  else do { label = indiv ? `개체 ${k}` : `클래스 ${k}`; name = deriveName(label, indiv ? 'prop' : 'class'); k++; } while (used.has(name));
   const n = { id: uid('n'), kind: indiv ? 'individual' : 'class', x, y, label, name, nameAuto: true, comment: '', color: null, attrs: [] };
   state.nodes.push(n); return n;
 }
@@ -710,7 +713,7 @@ function setNodeKind(n, kind){
   if ((n.kind || 'class') === kind) return;
   checkpoint();
   n.kind = kind;
-  if (n.nameAuto){ const nm = deriveName(n.label, nameKind(n)); if (nm) n.name = nm; }
+  if (n.nameAuto && !iriFirst()){ const nm = deriveName(n.label, nameKind(n)); if (nm) n.name = nm; }
   n.attrs.forEach(a => { if (a.value === undefined) a.value = ''; });
   state.edges.forEach(e => { if (e.from === n.id || e.to === n.id) normalizeEdge(e); });
   renderAll(); persist();
@@ -724,9 +727,11 @@ function nodePanel(p, n){
   const linkLabel = e => e.kind === 'subclass' ? 'subClassOf' : (e.label || e.name);
   p.innerHTML = `<h3>${indiv ? '개체 (individual)' : '클래스'}</h3>
     ${field('종류', `<div class="seg"><button data-nk="class" class="${indiv ? '' : 'on'}">클래스 (TBox)</button><button data-nk="individual" class="${indiv ? 'on' : ''}">개체 (ABox)</button></div>`)}
-    ${field('라벨 (rdfs:label)', `<input type="text" data-f="label" value="${esc(n.label)}">`)}
-    ${field('이름 (IRI)', `<div class="orow"><input type="text" class="mono" data-f="name" value="${esc(n.name)}">${autoChip(n.nameAuto, '라벨')}</div>`,
-      `<div class="hint" id="iriPrev"></div><div class="warn" id="dupWarn"${dupe ? '' : ' hidden'}>같은 이름의 노드가 이미 있습니다.</div>`)}
+    ${(() => {
+      const labelF = field('라벨 (rdfs:label)', `<input type="text" data-f="label" value="${esc(n.label)}"${iriFirst() ? ' placeholder="비워 두면 IRI 이름이 보입니다"' : ''}>`);
+      const nameF = field('이름 (IRI)', `<div class="orow"><input type="text" class="mono" data-f="name" value="${esc(n.name)}">${iriFirst() ? '' : autoChip(n.nameAuto, '라벨')}</div>`,
+        `<div class="hint" id="iriPrev"></div><div class="warn" id="dupWarn"${dupe ? '' : ' hidden'}>같은 이름의 노드가 이미 있습니다.</div>`);
+      return iriFirst() ? nameF + labelF : labelF + nameF; })()}
     ${indiv ? `<h4>타입 (rdf:type)</h4>
       <div>${types.map(c => `<span class="tag">${esc(c.label || c.name)}<button data-untype="${c.id}" title="타입 해제">×</button></span>`).join('') || '<div class="hint" style="margin:0 0 8px">아직 타입이 없습니다. 개체 테두리를 끌어 클래스에 놓거나 아래에서 고르세요.</div>'}</div>
       ${classes.length ? `<select id="addType" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:6px;margin-bottom:12px"><option value="">+ 타입 추가…</option>${classes.map(c => `<option value="${c.id}">${esc(c.label || c.name)}</option>`).join('')}</select>` : ''}` : ''}
@@ -755,7 +760,7 @@ function nodePanel(p, n){
   const prev = () => { $('#iriPrev').textContent = fullIri(n.name); };
   prev();
   bindInputs(p, n, (f) => {
-    if (f === 'label' && n.nameAuto){
+    if (f === 'label' && n.nameAuto && !iriFirst()){
       const nm = deriveName(n.label, nameKind(n));
       if (nm){ n.name = nm; p.querySelector('[data-f=name]').value = nm; }
     }
@@ -763,7 +768,7 @@ function nodePanel(p, n){
     prev();
     $('#dupWarn').hidden = !state.nodes.some(o => o !== n && o.name === n.name);
   });
-  $('#nmAuto').addEventListener('click', () => {
+  if ($('#nmAuto')) $('#nmAuto').addEventListener('click', () => {
     checkpoint(); n.nameAuto = !n.nameAuto;
     if (n.nameAuto){ const nm = deriveName(n.label, nameKind(n)); if (nm){ n.name = nm; p.querySelector('[data-f=name]').value = nm; } }
     setAutoChip(n.nameAuto, '라벨'); prev(); $('#dupWarn').hidden = !state.nodes.some(o => o !== n && o.name === n.name);
@@ -820,8 +825,9 @@ function edgePanel(p, e){
   const sameName = state.edges.filter(o => o.kind === 'object' && edgeShape(o) === 'CC' && o.name === e.name).length;
   const ends = `<div class="info">${esc(a ? (a.label || a.name) : '?')} <b>→</b> ${esc(b ? (b.label || b.name) : '?')}</div>`;
   const nameFields = (assert) => `
-      ${field('라벨 (rdfs:label)', `<input type="text" data-f="label" value="${esc(e.label)}" placeholder="예: 소속되다">`)}
-      ${field('이름 (IRI)', `<div class="orow">${comboHTML(`class="mono" data-f="name" value="${esc(e.name)}"`, 'op')}${autoChip(e.nameAuto, '라벨')}</div>`, `<div class="hint" id="iriPrev"></div><div class="hint">▾를 누르면 이미 있는 관계 목록이 나옵니다. 같은 이름을 고르면 같은 속성으로 합쳐집니다.</div>`)}
+      ${(() => { const labelF = field('라벨 (rdfs:label)', `<input type="text" data-f="label" value="${esc(e.label)}" placeholder="${iriFirst() ? '비워 두면 IRI 이름이 보입니다' : '예: 소속되다'}">`);
+        const nameF = field('이름 (IRI)', `<div class="orow">${comboHTML(`class="mono" data-f="name" value="${esc(e.name)}"`, 'op')}${iriFirst() ? '' : autoChip(e.nameAuto, '라벨')}</div>`, `<div class="hint" id="iriPrev"></div><div class="hint">▾를 누르면 이미 있는 관계 목록이 나옵니다. 같은 이름을 고르면 같은 속성으로 합쳐집니다.</div>`);
+        return iriFirst() ? nameF + labelF : labelF + nameF; })()}
       ${assert ? '' : `<div class="info" id="mergeInfo"${sameName > 1 ? '' : ' hidden'}>같은 이름을 쓰는 관계 <b id="mergeN">${sameName}</b>개는 하나의 속성으로 합쳐집니다. 출발·도착 클래스가 여러 개면 domain·range가 owl:unionOf로 나갑니다.</div>
       ${field('설명 (rdfs:comment)', `<textarea data-f="comment">${esc(e.comment)}</textarea>`)}
       <div class="field"><label class="check"><input type="checkbox" data-f="functional"${e.functional ? ' checked' : ''}> 값이 하나만 허용됨 (owl:FunctionalProperty)</label></div>`}`;
@@ -854,7 +860,7 @@ function edgePanel(p, e){
     const prev = () => { $('#iriPrev').textContent = fullIri(e.name); };
     prev();
     bindInputs(p, e, (f) => {
-      if (f === 'label' && e.nameAuto){
+      if (f === 'label' && e.nameAuto && !iriFirst()){
         const nm = deriveName(e.label, 'prop');
         if (nm){ e.name = nm; p.querySelector('[data-f=name]').value = nm; }
       }
@@ -868,7 +874,7 @@ function edgePanel(p, e){
       const mi = $('#mergeInfo');
       if (mi){ const n2 = state.edges.filter(o => o.kind === 'object' && edgeShape(o) === 'CC' && o.name === e.name).length; mi.hidden = n2 < 2; $('#mergeN').textContent = n2; }
     });
-    $('#nmAuto').addEventListener('click', () => {
+    if ($('#nmAuto')) $('#nmAuto').addEventListener('click', () => {
       checkpoint(); e.nameAuto = !e.nameAuto;
       if (e.nameAuto){ const nm = deriveName(e.label, 'prop'); if (nm){ e.name = nm; p.querySelector('[data-f=name]').value = nm; } }
       setAutoChip(e.nameAuto, '라벨'); prev(); renderCanvas(); persist();
@@ -1288,18 +1294,18 @@ window.addEventListener('pointerup', ev => {
     let toId = target;
     if (!toId){ const p = toWorld(ev); toId = addNode(Math.round(p.x), Math.round(p.y), nodeById(d.from).kind || 'class').id; }
     const e = addEdge(d.from, toId);
-    selection = { type: 'edge', id: e.id }; renderAll(); persist(); focusField('label');
+    selection = { type: 'edge', id: e.id }; renderAll(); persist(); focusField(primaryField());
   } else if (d.mode === 'move'){ if (d.moved) persist(); }
   else if (d.mode === 'pan'){ if (d.moved) persist(); else { select(null); if (ui.card === 'open'){ ui.card = 'card'; ui.imports = false; renderOntoCard(); } } }
 });
 svg.addEventListener('dblclick', ev => {
   const nodeG = ev.target.closest('[data-node]'), edgeG = ev.target.closest('[data-edge]');
-  if (nodeG){ select({ type: 'node', id: nodeG.dataset.node }); focusField('label'); return; }
-  if (edgeG){ select({ type: 'edge', id: edgeG.dataset.edge }); focusField('label'); return; }
+  if (nodeG){ select({ type: 'node', id: nodeG.dataset.node }); focusField(primaryField()); return; }
+  if (edgeG){ select({ type: 'edge', id: edgeG.dataset.edge }); focusField(primaryField()); return; }
   checkpoint();
   const kind = ev.shiftKey ? (addKind === 'class' ? 'individual' : 'class') : addKind;
   const p = toWorld(ev); const n = addNode(Math.round(p.x), Math.round(p.y), kind);
-  selection = { type: 'node', id: n.id }; renderAll(); persist(); focusField('label');
+  selection = { type: 'node', id: n.id }; renderAll(); persist(); focusField(primaryField());
 });
 svg.addEventListener('wheel', ev => {
   ev.preventDefault();
@@ -1852,6 +1858,7 @@ function ensureMeta(m){
   if (m.ontoSame === undefined) m.ontoSame = (m.ontologyIri || '') === String(m.baseIri || '').replace(/[#/]$/, '');
   if (m.iriAuto === undefined) m.iriAuto = false;
   if (m.prefixAuto === undefined) m.prefixAuto = false;
+  if (m.naming !== 'label') m.naming = 'iri';
   if (m.extraPrefixes === undefined) m.extraPrefixes = '';
   return m;
 }
@@ -1892,6 +1899,8 @@ function cardBody(m){
       <div class="hint" id="oAddrHint">${m.iriAuto ? '실제로 공개할 주소가 있으면 바꾸세요. 직접 고치면 그때부터 고정됩니다.' : '이름을 바꿔도 주소는 그대로입니다.'}${nLocal ? ` 주소를 바꾸면 이 온톨로지 안의 IRI ${nLocal}개가 함께 바뀝니다.` : ''}</div></div>
     <div class="field"><label>라벨 언어</label><div class="seg" id="oLangSeg">${LANGS.map(([v, t]) => `<button data-lang="${v}" class="${m.lang === v ? 'on' : ''}">${t}</button>`).join('')}</div>
       ${LANGS.some(x => x[0] === m.lang) ? '' : `<div class="hint">지금 언어 태그: <span class="mono">@${esc(m.lang)}</span> (고급 설정에서 바꿀 수 있음)</div>`}</div>
+    <div class="field"><label>이름 정하는 방식</label><div class="seg" id="oNaming"><button data-naming="iri" class="${m.naming === 'label' ? '' : 'on'}">IRI 먼저, 라벨 따로</button><button data-naming="label" class="${m.naming === 'label' ? 'on' : ''}">라벨에서 IRI 만들기</button></div>
+      <div class="hint">${m.naming === 'label' ? '라벨을 적으면 IRI가 따라 만들어집니다. 한국어 라벨이면 IRI도 한국어가 됩니다.' : '새 항목은 Class1 같은 IRI 이름으로 만들어지고, 라벨(예: 한국어 이름)은 따로 적습니다.'}</div></div>
     <div class="oprev" id="oPrev"></div>
     <div class="field"><label>외부 온톨로지</label>
       <div class="otags">${extras.map((x, i) => `<span class="tag"><span class="mono">${esc(x.p)}:</span>&nbsp;${esc((PRESETS.find(p => p.iri === x.iri) || {}).name || x.iri)}<button data-rmx="${i}" aria-label="${esc(x.p)} 제거">×</button></span>`).join('')}
@@ -1901,7 +1910,7 @@ function cardBody(m){
         <div class="hint" style="margin:8px 0 4px">목록에 없으면 직접 추가</div>
         <div class="orow"><input type="text" id="oNewP" class="mono" placeholder="접두어" style="width:90px;flex:none"><input type="text" id="oNewI" class="mono" placeholder="https://…"><button class="btn" id="oNewAdd">추가</button></div>
         <div class="warn" id="oNewWarn" hidden></div>
-      </div>` : `<div class="hint">추가한 접두어는 클래스 이름에 <span class="mono">cco:Agent</span>처럼 쓸 수 있고, 외부 클래스는 점선 테두리로 보입니다.</div>`}
+      </div>` : `<div class="hint">추가한 접두어는 클래스 이름에 <span class="mono">schema:Person</span>처럼 쓸 수 있고, 외부 클래스는 점선 테두리로 보입니다.</div>`}
     </div>
     <button class="olink" id="oAdvBtn" aria-expanded="${ui.adv}">${ui.adv ? '▾' : '▸'} 고급 설정 <span class="hint">(접두어, 구분 기호, 온톨로지 IRI, 언어 태그)</span></button>
     ${ui.adv ? `<div class="oadv">
@@ -1919,9 +1928,9 @@ function cardBody(m){
 }
 function updatePreview(){
   const m = state.meta, el = $('#oPrev'); if (!el) return;
-  const local = '사람';
+  const local = m.naming === 'label' ? '사람' : 'Person';
   el.innerHTML = `<div class="hint">이렇게 만들어집니다</div>
-    <div>클래스 “사람” → <span class="mono" style="color:#1f4fb8">${esc(ttlTerm(local))}</span></div>
+    <div>${m.naming === 'label' ? '클래스 “사람”' : 'IRI “Person”, 라벨 “사람”'} → <span class="mono" style="color:#1f4fb8">${esc(ttlTerm(local))}</span></div>
     <div class="mono hint">${esc(fullIri(local))} · rdfs:label ${esc(lit('사람'))}</div>`;
 }
 function updateCardHead(){
@@ -1973,6 +1982,7 @@ function renderOntoCard(){
   };
   // 언어
   $('#oLangSeg').querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { checkpoint(); m.lang = b.dataset.lang; renderOntoCard(); metaChanged(); });
+  $('#oNaming').querySelectorAll('[data-naming]').forEach(b => b.onclick = () => { if (m.naming === b.dataset.naming) return; checkpoint(); m.naming = b.dataset.naming; renderOntoCard(); renderPanel(); persist(); });
   // 외부 온톨로지
   $('#oImpBtn').onclick = () => { ui.imports = !ui.imports; renderOntoCard(); };
   $('#ontoCard').querySelectorAll('[data-rmx]').forEach(b => b.onclick = () => { checkpoint(); const l = extraList(m); l.splice(+b.dataset.rmx, 1); setExtraList(m, l); renderOntoCard(); metaChanged(); });
